@@ -1,4 +1,4 @@
-import Logger from "logger"
+import Logger from "@imjxsx/logger"
 import type { LnOptions, Nullable } from "./types/index.js"
 import fs from "node:fs"
 import path from "node:path"
