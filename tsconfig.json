@@ -1,47 +1,23 @@
 {
   "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "./build",
     "declaration": true,
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "build",
-    "rootDir": "source",
-    "allowJs": false,
-    "checkJs": false,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "declarationDir": "./build",
     "strict": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "alwaysStrict": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "exactOptionalPropertyTypes": true,
-    "useUnknownInCatchVariables": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "preserveConstEnums": true,
-    "noEmitOnError": true,
-    "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo"
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "./source",
+    "noEmitOnError": true
   },
   "include": [
-    "source/**/*.ts"
+    "source/index.ts"
   ],
   "exclude": [
     "node_modules",
-    "build",
-    "**/*.test.ts"
+    "build"
   ]
 }
