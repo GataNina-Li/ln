@@ -140,7 +140,7 @@ Google Translate has request limits. If too many requests are made from the same
 {
   "type": "module",
   "dependencies": {
-    "ln": "github:GataNina-Li/ln"
+    "ln": "@gatanina-li/ln": "^1.1.0"
   }
 }
 
