@@ -1,4 +1,4 @@
-import Logger from "@imjxsx/logger"
+import Logger from "logger"
 import fs from "node:fs";
 import path from "node:path";
 class Ln {
