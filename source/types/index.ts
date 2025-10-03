@@ -1,4 +1,4 @@
-import type Logger from "logger"
+import type Logger from "@imjxsx/logger"
 
 export type Nullable<T> = T | undefined | null
 export interface LnOptions {
