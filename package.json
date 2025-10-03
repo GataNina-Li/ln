@@ -1,7 +1,7 @@
 {
-  "name": "@imjxsx/ln",
-  "version": "1.0.2",
-  "description": "A simple and lightweight multilingual (i18n) system built with TypeScript",
+  "name": "@GataNina-Li/ln",
+  "version": "1.1.0",
+  "description": "A simple and lightweight multilingual (i18n) system built with TypeScript, supporting local or online translations",
   "type": "module",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -21,15 +21,15 @@
     "nodejs",
     "ln"
   ],
-  "author": "imjxsx",
+  "author": "GataNina-Li",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/imjxsx/ln.git"
+    "url": "git+https://github.com/GataNina-Li/ln.git"
   },
   "bugs": {
-    "url": "https://github.com/imjxsx/ln/issues"
+    "url": "https://github.com/GataNina-Li/ln/issues"
   },
-  "homepage": "https://github.com/imjxsx/ln#readme",
+  "homepage": "https://github.com/GataNina-Li/ln#readme",
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
     "@types/node": "20.0.0",
