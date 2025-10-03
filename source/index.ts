@@ -120,6 +120,7 @@ export class Ln {
     let key: string
     let language: string
     let vars: Nullable<Record<string, string>> | undefined
+    const placeholders: Record<string, string> = {}
 
     if (this.online) {
       textToTranslate = args[0]
@@ -129,6 +130,15 @@ export class Ln {
       if (!textToTranslate || !key) {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
+      }
+      // Protect placeholders like %user% before translation
+      if (vars) {
+        Object.keys(vars).forEach((k, index) => {
+          const placeholder = `%${k}%`
+          const tempPlaceholder = `__PH_${index}__`
+          placeholders[tempPlaceholder] = placeholder
+          textToTranslate = textToTranslate!.replace(new RegExp(placeholder, "g"), tempPlaceholder)
+        })
       }
     } else {
       key = args[0]
@@ -156,6 +166,10 @@ export class Ln {
         this.logger.info(`Translating online "${textToTranslate}" to "${language}"`)
         const res = await translate(textToTranslate, { to: language })
         text = res.text
+        // Restore placeholders after translation
+        Object.entries(placeholders).forEach(([temp, original]) => {
+          text = text!.replace(new RegExp(temp, "g"), original)
+        })
         locale.set(key, text)
         this.logger.trace({
           key,
@@ -164,10 +178,14 @@ export class Ln {
         })
       } catch (e) {
         this.logger.error(`Error in online translation: ${e}`)
-        text = textToTranslate // Fallback to original text
+        text = textToTranslate
+        // Restore placeholders in case of error
+        Object.entries(placeholders).forEach(([temp, original]) => {
+          text = text!.replace(new RegExp(temp, "g"), original)
+        })
       }
     } else if (!text) {
-      text = textToTranslate || key // Fallback to textToTranslate or key
+      text = textToTranslate || key
       this.logger.info(`Key "${key}" not found for language "${language}"`)
     }
 
