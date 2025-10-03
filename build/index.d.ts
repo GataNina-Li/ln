@@ -1,4 +1,4 @@
-import Logger from "@imjxsx/logger"
+import Logger from "logger"
 import type { LnOptions, Nullable } from "./types/index.js";
 declare class Ln {
     logger: Logger;
