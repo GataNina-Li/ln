@@ -1,10 +1,25 @@
-import Logger from "@imjxsx/logger"
-import type { LnOptions, Nullable } from "./types/index.js"
 import fs from "node:fs"
 import path from "node:path"
 import { translate } from "@vitalets/google-translate-api"
+import type Logger from "@imjxsx/logger"
 
-class Ln {
+export type Nullable<T> = T | undefined | null
+
+export interface LnOptions {
+  default: string
+  directory?: string
+  online?: boolean
+  logger?: Nullable<Logger>
+}
+
+export interface Ln {
+  t(textToTranslate: string, key: string, language?: string, vars?: Record<string, string>): Promise<string>
+  t(key: string, language?: string, vars?: Record<string, string>): Promise<string>
+  load(): Promise<void>
+  reset(): void
+}
+
+export class Ln {
   public logger: Logger
   public locales: Map<string, Map<string, string>>
   private default: string
@@ -15,7 +30,7 @@ class Ln {
     this.logger = options.logger || new Logger({
       name: "Ln",
       colorize: true,
-      level: "INFO",
+      level: "INFO"
     })
     this.locales = new Map()
     this.default = options.default
@@ -28,7 +43,6 @@ class Ln {
       this.logger.info("Modo online activado, no se carga directorio local")
       return
     }
-    
     try {
       const directory = await fs.promises.stat(this.directory!)
       if (!directory.isDirectory()) {
@@ -45,7 +59,7 @@ class Ln {
         const content = await fs.promises.readFile(path.resolve(this.directory!, file), "utf8")
         this.logger.trace({
           file,
-          content,
+          content
         })
         if (!content.length) {
           this.logger.info(`File "${file}" has no content, skipping file.`)
@@ -54,7 +68,7 @@ class Ln {
         const lines = content.split("\n").map((line) => line.trim()).filter((line) => line !== "" && !/^\#/.test(line))
         this.logger.trace({
           file,
-          lines,
+          lines
         })
         if (!lines.length) {
           this.logger.info(`File "${file}" has no lines, skipping file.`)
@@ -70,7 +84,7 @@ class Ln {
           this.logger.trace({
             file,
             line: i,
-            content: line,
+            content: line
           })
           const match = line?.match(/^([^=]+)=(.*)$/)
           if (!match || !match[1] || !match[2]) {
@@ -82,33 +96,32 @@ class Ln {
             file,
             line: i,
             key: key.trim(),
-            value: value.trim(),
+            value: value.trim()
           })
           locale.set(key.trim(), value.trim())
         }
         this.logger.info(`The file "${file}" has finished processing.`)
         this.logger.trace({
           file,
-          keys: locale.size,
+          keys: locale.size
         })
       }
       this.logger.info("All files have been processed.")
       this.logger.trace({
-        locales: Array.from(this.locales.keys()),
+        locales: Array.from(this.locales.keys())
       })
     } catch (e) {
       this.logger.error(e)
     }
   }
 
-  public t(...args: any[]): string {
+  public async t(...args: any[]): Promise<string> {
     let textToTranslate: string | undefined
     let key: string
     let language: string
     let vars: Nullable<Record<string, string>> | undefined
 
     if (this.online) {
-      // Modo online: t(textToTranslate, key, language?, vars?)
       textToTranslate = args[0]
       key = args[1]
       language = args[2] || this.default
@@ -118,18 +131,17 @@ class Ln {
         return textToTranslate || key
       }
     } else {
-      // Modo local: t(key, language?, vars?)
       key = args[0]
       language = args[1] || this.default
       vars = args[2]
     }
 
-    this.logger.info(`GET "${key}".`)
+    this.logger.info(`GET "${key}" for language "${language}"`)
     this.logger.trace({
       key,
       language,
       vars: vars || {},
-      mode: this.online ? "online" : "local",
+      mode: this.online ? "online" : "local"
     })
 
     if (!this.locales.has(language)) {
@@ -140,24 +152,23 @@ class Ln {
     let text = locale.get(key)
 
     if (!text && this.online && textToTranslate) {
-      // Translate online if not cached
       try {
-        this.logger.info(`Translating online "${textToTranslate}" to "${language}".`)
+        this.logger.info(`Translating online "${textToTranslate}" to "${language}"`)
         const res = await translate(textToTranslate, { to: language })
         text = res.text
         locale.set(key, text)
         this.logger.trace({
           key,
           language,
-          translated: text,
+          translated: text
         })
       } catch (e) {
         this.logger.error(`Error in online translation: ${e}`)
-        text = textToTranslate 
+        text = textToTranslate // Fallback to original text
       }
     } else if (!text) {
-      text = key // Fallback locally if not found
-      this.logger.info(`Key "${key}" not found.`)
+      text = textToTranslate || key // Fallback to textToTranslate or key
+      this.logger.info(`Key "${key}" not found for language "${language}"`)
     }
 
     if (vars) {
@@ -169,17 +180,14 @@ class Ln {
     this.logger.trace({
       key,
       language,
-      value: text,
+      value: text
     })
     return text!
   }
 
   public reset() {
     this.locales.clear()
-    this.logger.info("Translation cache reset.")
+    this.logger.info("Translation cache reset")
   }
 }
 export default Ln
-export {
-  Ln,
-}
