@@ -71,6 +71,7 @@ console.log(ln.t("welcome.user", "es", { user: "GataNina-Li", place: "GitHub" })
 
 Create `.lang` files like `es.lang` with `key=value` pairs, e.g.:
 ```
+# locales/es.lang
 hello.world=Hola Mundo!
 welcome.user=Hola %user%, bienvenido a %place%.
 ```
@@ -133,6 +134,17 @@ Google Translate has request limits. If too many requests are made from the same
 - TypeScript Support: Full typings.
 
 ### 📥 Installation
+
+#### In `package.json`
+```bash
+{
+  "type": "module",
+  "dependencies": {
+    "ln": "github:GataNina-Li/ln"
+  }
+}
+
+```
 
 #### With NPM
 ```bash
