@@ -148,17 +148,17 @@ Google Translate has request limits. If too many requests are made from the same
 
 #### With NPM
 ```bash
-npm install @gatanina-li-dev/ln
+npm install ln@npm:@gatanina-li-dev/ln
 ```
 
 #### With PNPM
 ```bash
-pnpm add @gatanina-li-dev/ln
+pnpm add ln@npm:@gatanina-li-dev/ln
 ```
 
 #### With YARN
 ```bash
-yarn add @gatanina-li-dev/ln
+yarn add ln@npm:@gatanina-li-dev/ln
 ```
 
 ### ⚠️ Important Notes and Warnings
