@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { translate } from "@vitalets/google-translate-api"
-import type Logger from "@imjxsx/logger"
+import type Logger from "logger"
 
 export type Nullable<T> = T | undefined | null
 
