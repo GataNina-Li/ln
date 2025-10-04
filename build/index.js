@@ -104,6 +104,7 @@ export class Ln {
     let key
     let language
     let vars
+    const placeholders = {}
 
     if (this.online) {
       textToTranslate = args[0]
@@ -113,6 +114,14 @@ export class Ln {
       if (!textToTranslate || !key) {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
+      }
+      if (vars) {
+        Object.keys(vars).forEach((k, index) => {
+          const placeholder = `%${k}%`
+          const tempPlaceholder = `__PH_${index}__`
+          placeholders[tempPlaceholder] = placeholder
+          textToTranslate = textToTranslate.replace(new RegExp(placeholder, "g"), tempPlaceholder)
+        })
       }
     } else {
       key = args[0]
@@ -140,6 +149,9 @@ export class Ln {
         this.logger.info(`Translating online "${textToTranslate}" to "${language}"`)
         const res = await translate(textToTranslate, { to: language })
         text = res.text
+        Object.entries(placeholders).forEach(([temp, original]) => {
+          text = text.replace(new RegExp(temp, "g"), original)
+        })
         locale.set(key, text)
         this.logger.trace({
           key,
@@ -149,6 +161,9 @@ export class Ln {
       } catch (e) {
         this.logger.error(`Error in online translation: ${e}`)
         text = textToTranslate
+        Object.entries(placeholders).forEach(([temp, original]) => {
+          text = text.replace(new RegExp(temp, "g"), original)
+        })
       }
     } else if (!text) {
       text = textToTranslate || key
