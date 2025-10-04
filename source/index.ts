@@ -131,13 +131,13 @@ export class Ln {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
       }
-      if (vars) {
-        Object.keys(vars).forEach((k, index) => {
-          const placeholder = `%${k}%`
-          const tempPlaceholder = `__PH_${index}__`
-          placeholders[tempPlaceholder] = placeholder
-          textToTranslate = textToTranslate!.replace(placeholder, tempPlaceholder)
-        })
+      // Store the original text with placeholders in the Map if it doesn't exist
+      if (!this.locales.has(language)) {
+        this.locales.set(language, new Map())
+      }
+      const locale = this.locales.get(language)!
+      if (!locale.has(key)) {
+        locale.set(key, textToTranslate) // Store original text with %user%
       }
     } else {
       key = args[0]
@@ -162,14 +162,24 @@ export class Ln {
 
     if (!text && this.online && textToTranslate) {
       try {
-        this.logger.info(`Translating online "${textToTranslate}" to "${language}"`)
-        const res = await translate(textToTranslate, { to: language })
+        // Protect placeholders with unique markers
+        let toTranslate = textToTranslate
+        if (vars) {
+          Object.keys(vars).forEach((k, index) => {
+            const placeholder = `%${k}%`
+            const tempPlaceholder = `{{PH_${index}}}`
+            placeholders[tempPlaceholder] = placeholder
+            toTranslate = toTranslate.replace(placeholder, tempPlaceholder)
+          })
+        }
+        this.logger.info(`Translating online "${toTranslate}" to "${language}"`)
+        const res = await translate(toTranslate, { to: language })
         text = res.text
-        // Restore placeholders before storing
+        // Restore placeholders
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text!.replace(temp, original)
+          text = text.replace(temp, original)
         })
-        locale.set(key, text) // Store with original placeholders
+        locale.set(key, text) // Update Map with translated text containing %user%
         this.logger.trace({
           key,
           language,
@@ -180,7 +190,7 @@ export class Ln {
         text = textToTranslate
         // Restore placeholders in case of error
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text!.replace(temp, original)
+          text = text.replace(temp, original)
         })
       }
     } else if (!text) {
@@ -188,8 +198,8 @@ export class Ln {
       this.logger.info(`Key "${key}" not found for language "${language}"`)
     }
 
-    // Create a copy of text for variable replacement
-    let finalText = text!
+    // Create a copy for variable replacement
+    let finalText = text
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
         finalText = finalText.replace(`%${k}%`, v)
