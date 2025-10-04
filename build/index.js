@@ -115,13 +115,12 @@ export class Ln {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
       }
-      if (vars) {
-        Object.keys(vars).forEach((k, index) => {
-          const placeholder = `%${k}%`
-          const tempPlaceholder = `__PH_${index}__`
-          placeholders[tempPlaceholder] = placeholder
-          textToTranslate = textToTranslate.replace(placeholder, tempPlaceholder)
-        })
+      if (!this.locales.has(language)) {
+        this.locales.set(language, new Map())
+      }
+      const locale = this.locales.get(language)
+      if (!locale.has(key)) {
+        locale.set(key, textToTranslate)
       }
     } else {
       key = args[0]
@@ -146,8 +145,17 @@ export class Ln {
 
     if (!text && this.online && textToTranslate) {
       try {
-        this.logger.info(`Translating online "${textToTranslate}" to "${language}"`)
-        const res = await translate(textToTranslate, { to: language })
+        let toTranslate = textToTranslate
+        if (vars) {
+          Object.keys(vars).forEach((k, index) => {
+            const placeholder = `%${k}%`
+            const tempPlaceholder = `{{PH_${index}}}`
+            placeholders[tempPlaceholder] = placeholder
+            toTranslate = toTranslate.replace(placeholder, tempPlaceholder)
+          })
+        }
+        this.logger.info(`Translating online "${toTranslate}" to "${language}"`)
+        const res = await translate(toTranslate, { to: language })
         text = res.text
         Object.entries(placeholders).forEach(([temp, original]) => {
           text = text.replace(temp, original)
