@@ -51,7 +51,7 @@ Use local mode to load translations from `.lang` files in a directory. It's fast
 
 **Setup and Usage:**
 ```javascript
-import Ln from "@GataNina-Li/ln"
+import Ln from "ln" // import Ln from "@gatanina-li-dev/ln"
 import Logger from "logger"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -96,7 +96,7 @@ Use online mode for dynamic translations via Google Translate. No files needed; 
 
 **Setup and Usage:**
 ```javascript
-import Ln from "@GataNina-Li/ln"
+import Ln from "ln" // import Ln from "@gatanina-li-dev/ln"
 import Logger from "logger"
 
 const ln = new Ln({
