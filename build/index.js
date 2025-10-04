@@ -120,7 +120,7 @@ export class Ln {
           const placeholder = `%${k}%`
           const tempPlaceholder = `__PH_${index}__`
           placeholders[tempPlaceholder] = placeholder
-          textToTranslate = textToTranslate.replace(new RegExp(placeholder, "g"), tempPlaceholder)
+          textToTranslate = textToTranslate.replace(placeholder, tempPlaceholder)
         })
       }
     } else {
@@ -150,7 +150,7 @@ export class Ln {
         const res = await translate(textToTranslate, { to: language })
         text = res.text
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text.replace(new RegExp(temp, "g"), original)
+          text = text.replace(temp, original)
         })
         locale.set(key, text)
         this.logger.trace({
@@ -162,7 +162,7 @@ export class Ln {
         this.logger.error(`Error in online translation: ${e}`)
         text = textToTranslate
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text.replace(new RegExp(temp, "g"), original)
+          text = text.replace(temp, original)
         })
       }
     } else if (!text) {
@@ -170,18 +170,19 @@ export class Ln {
       this.logger.info(`Key "${key}" not found for language "${language}"`)
     }
 
+    let finalText = text
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
-        text = text.replace(new RegExp(`%${k}%`, "g"), v)
+        finalText = finalText.replace(`%${k}%`, v)
       })
     }
 
     this.logger.trace({
       key,
       language,
-      value: text
+      value: finalText
     })
-    return text
+    return finalText
   }
 
   reset() {
