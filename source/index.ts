@@ -131,13 +131,12 @@ export class Ln {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
       }
-      // Protect placeholders like %user% before translation
       if (vars) {
         Object.keys(vars).forEach((k, index) => {
           const placeholder = `%${k}%`
           const tempPlaceholder = `__PH_${index}__`
           placeholders[tempPlaceholder] = placeholder
-          textToTranslate = textToTranslate!.replace(new RegExp(placeholder, "g"), tempPlaceholder)
+          textToTranslate = textToTranslate!.replace(placeholder, tempPlaceholder)
         })
       }
     } else {
@@ -166,11 +165,11 @@ export class Ln {
         this.logger.info(`Translating online "${textToTranslate}" to "${language}"`)
         const res = await translate(textToTranslate, { to: language })
         text = res.text
-        // Restore placeholders after translation
+        // Restore placeholders before storing
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text!.replace(new RegExp(temp, "g"), original)
+          text = text!.replace(temp, original)
         })
-        locale.set(key, text)
+        locale.set(key, text) // Store with original placeholders
         this.logger.trace({
           key,
           language,
@@ -181,7 +180,7 @@ export class Ln {
         text = textToTranslate
         // Restore placeholders in case of error
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text!.replace(new RegExp(temp, "g"), original)
+          text = text!.replace(temp, original)
         })
       }
     } else if (!text) {
@@ -189,18 +188,20 @@ export class Ln {
       this.logger.info(`Key "${key}" not found for language "${language}"`)
     }
 
+    // Create a copy of text for variable replacement
+    let finalText = text!
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
-        text = text!.replace(new RegExp(`%${k}%`, "g"), v)
+        finalText = finalText.replace(`%${k}%`, v)
       })
     }
 
     this.logger.trace({
       key,
       language,
-      value: text
+      value: finalText
     })
-    return text!
+    return finalText
   }
 
   public reset() {
