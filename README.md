@@ -29,12 +29,12 @@ const ln = new Ln({
   - **Notes**: Must be a valid directory path. If invalid or missing in local mode, initialization fails with a fatal log. Use absolute paths for reliability.
 
 - **`online?: boolean`** (optional, default: `false`)
-  - **Purpose**: Enables online mode for dynamic translations via Google Translate. When `true`, `directory` is ignored, and `load()` is not needed.
+  - **Purpose**: Enables online mode for dynamic translations via Google Translate. When `true`, `directory` is ignored, and `ln.load()` is not needed.
   - **Example**: `online: true` activates online mode.
   - **Notes**: Requires internet access. Cached translations ensure fast subsequent lookups.
 
 - **`logger?: Nullable<Logger>`** (optional)
-  - **Purpose**: Custom logger instance from `@imjxsx/logger` for debugging and tracing. If not provided, a default logger is created with level `"INFO"` and colorized output.
+  - **Purpose**: Custom logger instance from `logger` for debugging and tracing. If not provided, a default logger is created with level `"INFO"` and colorized output.
   - **Example**: `logger: new Logger({ level: "OFF" })` silences all logs. Use `level: "ERROR"` to show only errors, or `level: "INFO"` for detailed logs.
   - **Notes**: Logger levels (e.g., `"OFF"`, `"ERROR"`, `"INFO"`) control verbosity. A custom logger must implement `info`, `trace`, `warn`, `error`, and `fatal`. Example for errors only:
     ```javascript
@@ -52,7 +52,7 @@ Use local mode to load translations from `.lang` files in a directory. It's fast
 **Setup and Usage:**
 ```javascript
 import Ln from "@GataNina-Li/ln"
-import Logger from "@imjxsx/logger"
+import Logger from "logger"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -97,7 +97,7 @@ Use online mode for dynamic translations via Google Translate. No files needed; 
 **Setup and Usage:**
 ```javascript
 import Ln from "@GataNina-Li/ln"
-import Logger from "@imjxsx/logger"
+import Logger from "logger"
 
 const ln = new Ln({
   default: "es",
@@ -171,7 +171,7 @@ yarn add @gatanina-li-dev/ln
 - **Directory issues**: Use absolute paths.
 - **API errors**: Check connection; fallback used.
 - **Missing keys**: Returns key or original text.
-- **Memory**: Use `reset()` for large caches.
+- **Memory**: In online mode, use `ln.reset()` to clear the cache. Useful for making new API calls.
 
 ### 🙏 Gratitude
 
