@@ -37,8 +37,8 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
-    "logger": "@imjxsx/logger",
-    "@imjxsx/logger": "1.0.3",
+    "colors": "npm:@imjxsx/colors@^1.0.3",
+    "logger": "npm:@imjxsx/logger@^1.0.3",
     "@vitalets/google-translate-api": "^9.2.1"
   }
 }
