@@ -165,6 +165,7 @@ yarn add @gatanina-li-dev/ln
 - Validate paths and params to avoid errors.
 - Online mode needs internet; handles failures with fallbacks.
 - Logger verbose by default; use `logger: new Logger({ level: "OFF" })` to mute or `"ERROR"` for errors only.
+- If there are duplicate keys with different text for the same language, the new translation replaces the previous one in the cache. It's recommended not to duplicate keys if you don't want this behavior to occur.
 
 ### 🛠️ Common Issues and Solutions
 - **Directory issues**: Use absolute paths.
