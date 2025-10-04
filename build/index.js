@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { translate } from "@vitalets/google-translate-api"
-import Logger from "@imjxsx/logger"
+import Logger from "logger"
 
 export class Ln {
   locales
