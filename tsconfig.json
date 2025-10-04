@@ -13,9 +13,7 @@
     "rootDir": "./source",
     "noEmitOnError": true
   },
-  "include": [
-    "source/index.ts"
-  ],
+  "include": ["source/**/*"],
   "exclude": [
     "node_modules",
     "build"
