@@ -131,13 +131,9 @@ export class Ln {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
       }
-      // Store the original text with placeholders in the Map if it doesn't exist
+      // No almacenar el original prematuramente
       if (!this.locales.has(language)) {
         this.locales.set(language, new Map())
-      }
-      const locale = this.locales.get(language)!
-      if (!locale.has(key)) {
-        locale.set(key, textToTranslate) // Store original text with %user%
       }
     } else {
       key = args[0]
@@ -160,7 +156,7 @@ export class Ln {
 
     let text = locale.get(key)
 
-    if (!text && this.online && textToTranslate) {
+    if (text === undefined && this.online && textToTranslate) {  // Cambiado a text === undefined para detectar ausencia
       try {
         // Protect placeholders with unique markers
         let toTranslate = textToTranslate
@@ -177,9 +173,9 @@ export class Ln {
         text = res.text
         // Restore placeholders
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text.replace(temp, original)
+          text = text!.replace(temp, original)  // Asegurar text no null
         })
-        locale.set(key, text) // Update Map with translated text containing %user%
+        locale.set(key, text) // Almacenar la traducción
         this.logger.trace({
           key,
           language,
@@ -192,8 +188,9 @@ export class Ln {
         Object.entries(placeholders).forEach(([temp, original]) => {
           text = text.replace(temp, original)
         })
+        locale.set(key, text) // Almacenar original solo si falla
       }
-    } else if (!text) {
+    } else if (text === undefined) {
       text = textToTranslate || key
       this.logger.info(`Key "${key}" not found for language "${language}"`)
     }
