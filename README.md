@@ -1,4 +1,4 @@
-# 🌎 @GataNina-Li/ln (v1.1.0)
+# 🌎 @GataNina-Li/ln (v1.1.1)
 
 ## A Simple and Lightweight Multilingual (i18n) System Built with TypeScript
 
@@ -140,7 +140,7 @@ Google Translate has request limits. If too many requests are made from the same
 {
   "type": "module",
   "dependencies": {
-    "ln": "@gatanina-li/ln": "^1.1.0"
+    "ln": "github:GataNina-Li/ln"
   }
 }
 
@@ -148,17 +148,17 @@ Google Translate has request limits. If too many requests are made from the same
 
 #### With NPM
 ```bash
-npm install @GataNina-Li/ln
+npm install @gatanina-li-dev/ln
 ```
 
 #### With PNPM
 ```bash
-pnpm add @GataNina-Li/ln
+pnpm add @gatanina-li-dev/ln
 ```
 
 #### With YARN
 ```bash
-yarn add @GataNina-Li/ln
+yarn add @gatanina-li-dev/ln
 ```
 
 ### ⚠️ Important Notes and Warnings
