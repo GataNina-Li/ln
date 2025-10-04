@@ -115,7 +115,6 @@ export class Ln {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
       }
-      // No almacenar el original prematuramente
       if (!this.locales.has(language)) {
         this.locales.set(language, new Map())
       }
@@ -140,7 +139,7 @@ export class Ln {
 
     let text = locale.get(key)
 
-    if (text === undefined && this.online && textToTranslate) {  // Cambiado a text === undefined
+    if (text === undefined && this.online && textToTranslate) {
       try {
         let toTranslate = textToTranslate
         if (vars) {
@@ -152,10 +151,12 @@ export class Ln {
           })
         }
         this.logger.info(`Translating online "${toTranslate}" to "${language}"`)
+        this.logger.trace({ placeholders })
         const res = await translate(toTranslate, { to: language })
         text = res.text
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text.replace(temp, original)
+          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi')
+          text = text.replace(regex, original)
         })
         locale.set(key, text)
         this.logger.trace({
@@ -167,9 +168,10 @@ export class Ln {
         this.logger.error(`Error in online translation: ${e}`)
         text = textToTranslate
         Object.entries(placeholders).forEach(([temp, original]) => {
-          text = text.replace(temp, original)
+          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi')
+          text = text.replace(regex, original)
         })
-        locale.set(key, text) // Almacenar original solo si falla
+        locale.set(key, text)
       }
     } else if (text === undefined) {
       text = textToTranslate || key
