@@ -115,12 +115,9 @@ export class Ln {
         this.logger.error("In online mode, textToTranslate and key are required")
         return textToTranslate || key
       }
+      // No almacenar el original prematuramente
       if (!this.locales.has(language)) {
         this.locales.set(language, new Map())
-      }
-      const locale = this.locales.get(language)
-      if (!locale.has(key)) {
-        locale.set(key, textToTranslate)
       }
     } else {
       key = args[0]
@@ -143,7 +140,7 @@ export class Ln {
 
     let text = locale.get(key)
 
-    if (!text && this.online && textToTranslate) {
+    if (text === undefined && this.online && textToTranslate) {  // Cambiado a text === undefined
       try {
         let toTranslate = textToTranslate
         if (vars) {
@@ -172,8 +169,9 @@ export class Ln {
         Object.entries(placeholders).forEach(([temp, original]) => {
           text = text.replace(temp, original)
         })
+        locale.set(key, text) // Almacenar original solo si falla
       }
-    } else if (!text) {
+    } else if (text === undefined) {
       text = textToTranslate || key
       this.logger.info(`Key "${key}" not found for language "${language}"`)
     }
