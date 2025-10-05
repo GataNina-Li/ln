@@ -132,7 +132,7 @@ export class Ln {
             const placeholder = `%${k}%`
             const tempPlaceholder = `{{PH_${index}}}`
             placeholders[tempPlaceholder] = placeholder
-            toTranslate = toTranslate.replace(placeholder, tempPlaceholder)
+            toTranslate = toTranslate.replace(new RegExp(`%${k}%`, 'g'), tempPlaceholder)
           })
         }
         this.logger.info(`[Ln:Translate] Traduciendo "${toTranslate}" a "${language}"`)
@@ -142,17 +142,17 @@ export class Ln {
           this.logger.error(`[Ln:Translate] La API devolvió un texto no válido: ${text}`)
           text = textToTranslate
         }
-        // Normalize spaces around placeholders
+        // Normalizar espacios alrededor de placeholders temporales
         Object.keys(placeholders).forEach((temp) => {
           const regex = new RegExp(`\\s*${temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*`, 'g')
           text = text!.replace(regex, temp)
         })
-        // Restore original placeholders
+        // Restaurar placeholders originales
         Object.entries(placeholders).forEach(([temp, original]) => {
           const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g')
           text = text!.replace(regex, original)
         })
-        // Ensure spaces are preserved as in original text
+        // Restaurar espacios y símbolos del texto original
         if (textToTranslate) {
           text = this.restoreSpaces(textToTranslate, text!, placeholders)
         }
@@ -175,7 +175,8 @@ export class Ln {
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
         if (typeof v === "string") {
-          finalText = finalText.replace(`%${k}%`, v)
+          const regex = new RegExp(`%${k}%`, 'g')
+          finalText = finalText.replace(regex, v)
         } else {
           this.logger.warn(`[Ln:Translate] Variable "${k}" no es una cadena, se omite: ${v}`)
         }
@@ -192,19 +193,18 @@ export class Ln {
   private restoreSpaces(original: string, translated: string, placeholders: Record<string, string>): string {
     let result = translated
     Object.entries(placeholders).forEach(([temp, placeholder]) => {
-      const originalContext = original.match(new RegExp(`\\s*${placeholder}\\s*`, 'g'))
-      if (originalContext) {
-        originalContext.forEach((context) => {
-          const translatedContext = result.match(new RegExp(`\\s*${placeholder}\\s*`, 'g'))
-          if (translatedContext) {
-            translatedContext.forEach((tContext, index) => {
-              if (originalContext[index]) {
-                result = result.replace(tContext, originalContext[index])
-              }
-            })
-          }
-        })
-      }
+      
+      const regex = new RegExp(`([^\\s]*${placeholder}[^\\s]*)`, 'g')
+      const originalMatches = original.match(regex) || []
+      const translatedMatches = result.match(regex) || []
+      originalMatches.forEach((originalContext, index) => {
+        if (translatedMatches[index]) {
+          const translatedContext = translatedMatches[index]
+          
+          const escapedTranslatedContext = translatedContext.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+          result = result.replace(new RegExp(escapedTranslatedContext, 'g'), originalContext)
+        }
+      })
     })
     return result
   }
