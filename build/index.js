@@ -14,7 +14,7 @@ export class Ln {
     this.logger = new Logger({
       name: "Ln",
       colorize: true,
-      level: "TRACE"
+      level: "INFO"
     })
     this.locales = new Map()
     this.default = options.default
@@ -41,13 +41,11 @@ export class Ln {
       for (const file of files) {
         this.logger.info(`[Ln:Load] Leyendo contenido del archivo "${file}"`)
         const content = await fs.promises.readFile(path.resolve(this.directory, file), "utf8")
-        this.logger.trace(`[Ln:Load] Contenido del archivo "${file}":`, { content })
         if (!content.length) {
           this.logger.info(`[Ln:Load] El archivo "${file}" no tiene contenido, se omite`)
           continue
         }
         const lines = content.split("\n").map((line) => line.trim()).filter((line) => line !== "" && !/^\#/.test(line))
-        this.logger.trace(`[Ln:Load] Líneas procesadas de "${file}":`, { lines })
         if (!lines.length) {
           this.logger.info(`[Ln:Load] El archivo "${file}" no tiene líneas válidas, se omite`)
           continue
@@ -57,23 +55,18 @@ export class Ln {
         }
         const locale = this.locales.get(path.basename(file, ".lang"))
         for (let i = 0; i < lines.length; i++) {
-          this.logger.info(`[Ln:Load] Procesando línea ${i} del archivo "${file}"`)
           const line = lines[i]
-          this.logger.trace(`[Ln:Load] Contenido de la línea ${i}:`, { content: line })
           const match = line?.match(/^([^=]+)=(.*)$/)
           if (!match || !match[1] || !match[2]) {
             this.logger.info(`[Ln:Load] La línea ${i} del archivo "${file}" no tiene formato clave=valor válido`)
             continue
           }
           const [, key, value] = match
-          this.logger.trace(`[Ln:Load] Clave: "${key.trim()}", Valor: "${value.trim()}"`)
           locale.set(key.trim(), value.trim())
         }
         this.logger.info(`[Ln:Load] El archivo "${file}" ha sido procesado`)
-        this.logger.trace(`[Ln:Load] Claves cargadas: ${locale.size}`)
       }
       this.logger.info("[Ln:Load] Todos los archivos han sido procesados")
-      this.logger.trace(`[Ln:Load] Idiomas cargados:`, Array.from(this.locales.keys()))
     } catch (e) {
       this.logger.error(`[Ln:Load] Error al cargar directorio: ${e}`)
     }
@@ -109,13 +102,11 @@ export class Ln {
     }
 
     this.logger.info(`[Ln:Translate] Solicitando traducción para clave "${key}" en idioma "${language}"`)
-    this.logger.trace(`[Ln:Translate] Detalles:`, { key, language, vars: vars || {}, mode: this.online ? "online" : "local" })
 
     if (!this.locales.has(language)) {
       this.locales.set(language, new Map())
     }
     const locale = this.locales.get(language)
-
     let text = locale.get(key)
 
     if (text === undefined && this.online && textToTranslate) {
@@ -128,7 +119,6 @@ export class Ln {
             placeholders[tempPlaceholder] = placeholder
             toTranslate = toTranslate.replace(placeholder, tempPlaceholder)
           })
-          this.logger.trace(`[Ln:Translate] Placeholders generados:`, placeholders)
         }
         this.logger.info(`[Ln:Translate] Traduciendo "${toTranslate}" a "${language}"`)
         const res = await translate(toTranslate, { to: language })
@@ -137,24 +127,23 @@ export class Ln {
           this.logger.error(`[Ln:Translate] La API devolvió un texto no válido: ${text}`)
           text = textToTranslate
         }
-        // Clean extra spaces around placeholders
         Object.keys(placeholders).forEach((temp) => {
-          const regex = new RegExp(`\\s*${temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*`, 'gi')
+          const regex = new RegExp(`\\s*${temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*`, 'g')
           text = text.replace(regex, temp)
         })
-        this.logger.trace(`[Ln:Translate] Texto limpio después de la API: "${text}"`)
-        // Restore original placeholders
         Object.entries(placeholders).forEach(([temp, original]) => {
-          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi')
+          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g')
           text = text.replace(regex, original)
         })
+        if (textToTranslate) {
+          text = this.restoreSpaces(textToTranslate, text, placeholders)
+        }
         locale.set(key, text)
-        this.logger.trace(`[Ln:Translate] Traducción almacenada en caché:`, { key, language, translated: text })
       } catch (e) {
         this.logger.error(`[Ln:Translate] Error en traducción online: ${e}`)
         text = textToTranslate
         Object.entries(placeholders).forEach(([temp, original]) => {
-          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi')
+          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g')
           text = text.replace(regex, original)
         })
         locale.set(key, text)
@@ -179,9 +168,23 @@ export class Ln {
       this.logger.error(`[Ln:Translate] El texto final no es una cadena: ${finalText}`)
       finalText = ""
     }
-
-    this.logger.trace(`[Ln:Translate] Resultado final:`, { key, language, value: finalText })
     return finalText
+  }
+
+  restoreSpaces(original, translated, placeholders) {
+    let result = translated
+    Object.entries(placeholders).forEach(([temp, placeholder]) => {
+      const originalContext = original.match(new RegExp(`\\s*${placeholder}\\s*`, 'g'))
+      if (originalContext) {
+        originalContext.forEach((context, index) => {
+          const translatedContext = result.match(new RegExp(`\\s*${placeholder}\\s*`, 'g'))
+          if (translatedContext && translatedContext[index]) {
+            result = result.replace(translatedContext[index], originalContext[index])
+          }
+        })
+      }
+    })
+    return result
   }
 
   reset() {
@@ -189,4 +192,5 @@ export class Ln {
     this.logger.info("[Ln:Reset] Caché de traducciones limpiado")
   }
 }
+
 export default Ln
