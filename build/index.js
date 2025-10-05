@@ -127,10 +127,6 @@ export class Ln {
           this.logger.error(`[Ln:Translate] La API devolvió un texto no válido: ${text}`)
           text = textToTranslate
         }
-        Object.keys(placeholders).forEach((temp) => {
-          const regex = new RegExp(`\\s*${temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*`, 'g')
-          text = text.replace(regex, temp)
-        })
         Object.entries(placeholders).forEach(([temp, original]) => {
           const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g')
           text = text.replace(regex, original)
@@ -174,19 +170,32 @@ export class Ln {
 
   restoreSpaces(original, translated, placeholders) {
     let result = translated
-    Object.entries(placeholders).forEach(([temp, placeholder]) => {
-      const regex = new RegExp(`([^\\s]*${placeholder}[^\\s]*)`, 'g')
-      const originalMatches = original.match(regex) || []
-      const translatedMatches = result.match(regex) || []
-      originalMatches.forEach((originalContext, index) => {
-        if (translatedMatches[index]) {
-          const translatedContext = translatedMatches[index]
-          const escapedTranslatedContext = translatedContext.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-          result = result.replace(new RegExp(escapedTranslatedContext, 'g'), originalContext)
-        }
-      })
+    let parts = [original]
+    Object.values(placeholders).forEach((placeholder) => {
+      const regex = new RegExp(`(${placeholder})`, 'g')
+      parts = parts.flatMap(part => part.includes(placeholder) ? part.split(regex).filter(p => p) : part)
     })
-    return result
+
+    let translatedParts = [result]
+    Object.values(placeholders).forEach((placeholder) => {
+      const regex = new RegExp(`(${placeholder})`, 'g')
+      translatedParts = translatedParts.flatMap(part => part.includes(placeholder) ? part.split(regex).filter(p => p) : part)
+    })
+
+    let finalResult = ""
+    let partIndex = 0
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      if (Object.values(placeholders).includes(part)) {
+        finalResult += part
+        partIndex++
+      } else if (partIndex < translatedParts.length) {
+        finalResult += part
+        partIndex++
+      }
+    }
+
+    return finalResult
   }
 
   reset() {
