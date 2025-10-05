@@ -143,16 +143,11 @@ export class Ln {
           text = textToTranslate
         }
         // Normalizar espacios alrededor de placeholders temporales
-        Object.keys(placeholders).forEach((temp) => {
-          const regex = new RegExp(`\\s*${temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*`, 'g')
-          text = text!.replace(regex, temp)
-        })
-        // Restaurar placeholders originales
         Object.entries(placeholders).forEach(([temp, original]) => {
-          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g')
+          const regex = new RegExp(`\\s*${temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*`, 'g')
           text = text!.replace(regex, original)
         })
-        // Restaurar espacios y símbolos del texto original
+        // Restaurar formato del texto original
         if (textToTranslate) {
           text = this.restoreSpaces(textToTranslate, text!, placeholders)
         }
@@ -192,21 +187,35 @@ export class Ln {
 
   private restoreSpaces(original: string, translated: string, placeholders: Record<string, string>): string {
     let result = translated
-    Object.entries(placeholders).forEach(([temp, placeholder]) => {
-      
-      const regex = new RegExp(`([^\\s]*${placeholder}[^\\s]*)`, 'g')
-      const originalMatches = original.match(regex) || []
-      const translatedMatches = result.match(regex) || []
-      originalMatches.forEach((originalContext, index) => {
-        if (translatedMatches[index]) {
-          const translatedContext = translatedMatches[index]
-          
-          const escapedTranslatedContext = translatedContext.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-          result = result.replace(new RegExp(escapedTranslatedContext, 'g'), originalContext)
-        }
-      })
+    // Dividir el texto original en partes basadas en los placeholders
+    let parts = [original]
+    Object.values(placeholders).forEach((placeholder) => {
+      const regex = new RegExp(`(${placeholder})`, 'g')
+      parts = parts.flatMap(part => part.includes(placeholder) ? part.split(regex).filter(p => p) : part)
     })
-    return result
+
+    // Dividir el texto traducido en partes basadas en los placeholders
+    let translatedParts = [result]
+    Object.values(placeholders).forEach((placeholder) => {
+      const regex = new RegExp(`(${placeholder})`, 'g')
+      translatedParts = translatedParts.flatMap(part => part.includes(placeholder) ? part.split(regex).filter(p => p) : part)
+    })
+
+    // Reconstruir el texto asegurando que los espacios y símbolos coincidan con el original
+    let finalResult = ""
+    let partIndex = 0
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      if (Object.values(placeholders).includes(part)) {
+        finalResult += part // Mantener el placeholder original
+        partIndex++
+      } else if (partIndex < translatedParts.length) {
+        finalResult += part // Usar el contexto original para preservar espacios y símbolos
+        partIndex++
+      }
+    }
+
+    return finalResult
   }
 
   public reset() {
