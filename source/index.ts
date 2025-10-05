@@ -1,35 +1,21 @@
+import Logger from "logger"
+import type { LnOptions, Nullable } from "./types/index.js"
 import fs from "node:fs"
 import path from "node:path"
 import { translate } from "@vitalets/google-translate-api"
-import Logger from "logger"
 
-export type Nullable<T> = T | undefined | null
-
-export interface LnOptions {
-  default: string
-  directory?: string
-  online?: boolean
-}
-
-export interface Ln {
-  t(textToTranslate: string, key: string, language?: string, vars?: Record<string, string>): Promise<string>
-  t(key: string, language?: string, vars?: Record<string, string>): Promise<string>
-  load(): Promise<void>
-  reset(): void
-}
-
-export class Ln {
+class Ln {
+  public logger: Logger
   public locales: Map<string, Map<string, string>>
   private default: string
   private directory?: string
   private online: boolean
-  private logger: Logger
 
   constructor(options: LnOptions) {
-    this.logger = new Logger({
+    this.logger = options.logger || new Logger({
       name: "Ln",
       colorize: true,
-      level: "INFO"
+      level: "INFO",
     })
     this.locales = new Map()
     this.default = options.default
@@ -39,30 +25,39 @@ export class Ln {
 
   public async load() {
     if (this.online) {
-      this.logger.info("[Ln:Load] Modo online activado, no se carga directorio local")
+      this.logger.info("Modo online activado, no se carga directorio local")
       return
     }
+    
     try {
       const directory = await fs.promises.stat(this.directory!)
       if (!directory.isDirectory()) {
-        this.logger.fatal("[Ln:Load] El parámetro 'directory' debe ser una ruta a un directorio válido")
+        this.logger.fatal("The \"directory\" parameter must be a path to a valid directory.")
         return
       }
       const files = await fs.promises.readdir(this.directory!)
       if (!files.some((file) => path.extname(file) === ".lang")) {
-        this.logger.warn("[Ln:Load] No hay archivos con extensión '.lang' en el directorio especificado")
+        this.logger.warn("There is no file with the \"lang\" extension in the specified directory.")
         return
       }
       for (const file of files) {
-        this.logger.info(`[Ln:Load] Leyendo contenido del archivo "${file}"`)
+        this.logger.info(`Reading the contents of the file "${file}".`)
         const content = await fs.promises.readFile(path.resolve(this.directory!, file), "utf8")
+        this.logger.trace({
+          file,
+          content,
+        })
         if (!content.length) {
-          this.logger.info(`[Ln:Load] El archivo "${file}" no tiene contenido, se omite`)
+          this.logger.info(`File "${file}" has no content, skipping file.`)
           continue
         }
         const lines = content.split("\n").map((line) => line.trim()).filter((line) => line !== "" && !/^\#/.test(line))
+        this.logger.trace({
+          file,
+          lines,
+        })
         if (!lines.length) {
-          this.logger.info(`[Ln:Load] El archivo "${file}" no tiene líneas válidas, se omite`)
+          this.logger.info(`File "${file}" has no lines, skipping file.`)
           continue
         }
         if (!this.locales.has(path.basename(file, ".lang"))) {
@@ -70,158 +65,121 @@ export class Ln {
         }
         const locale = this.locales.get(path.basename(file, ".lang"))!
         for (let i = 0; i < lines.length; i++) {
+          this.logger.info(`Processing line number "${i}" of file "${file}".`)
           const line = lines[i]
+          this.logger.trace({
+            file,
+            line: i,
+            content: line,
+          })
           const match = line?.match(/^([^=]+)=(.*)$/)
           if (!match || !match[1] || !match[2]) {
-            this.logger.info(`[Ln:Load] La línea ${i} del archivo "${file}" no tiene formato clave=valor válido`)
+            this.logger.info(`Line number "${i}" of file "${file}" has no valid key=value.`)
             continue
           }
           const [, key, value] = match
+          this.logger.trace({
+            file,
+            line: i,
+            key: key.trim(),
+            value: value.trim(),
+          })
           locale.set(key.trim(), value.trim())
         }
-        this.logger.info(`[Ln:Load] El archivo "${file}" ha sido procesado`)
+        this.logger.info(`The file "${file}" has finished processing.`)
+        this.logger.trace({
+          file,
+          keys: locale.size,
+        })
       }
-      this.logger.info("[Ln:Load] Todos los archivos han sido procesados")
+      this.logger.info("All files have been processed.")
+      this.logger.trace({
+        locales: Array.from(this.locales.keys()),
+      })
     } catch (e) {
-      this.logger.error(`[Ln:Load] Error al cargar directorio: ${e}`)
+      this.logger.error(e)
     }
   }
 
-  public async t(...args: any[]): Promise<string> {
+  public t(...args: any[]): string {
     let textToTranslate: string | undefined
     let key: string
     let language: string
     let vars: Nullable<Record<string, string>> | undefined
-    const placeholders: Record<string, string> = {}
 
     if (this.online) {
+      // Modo online: t(textToTranslate, key, language?, vars?)
       textToTranslate = args[0]
       key = args[1]
       language = args[2] || this.default
       vars = args[3]
-      if (typeof textToTranslate !== "string" || typeof key !== "string") {
-        this.logger.error(`[Ln:Translate] En modo online, textToTranslate y key deben ser cadenas. Recibido: textToTranslate=${textToTranslate}, key=${key}`)
-        return ""
-      }
-      if (!this.locales.has(language)) {
-        this.locales.set(language, new Map())
+      if (!textToTranslate || !key) {
+        this.logger.error("In online mode, textToTranslate and key are required")
+        return textToTranslate || key
       }
     } else {
+      // Modo local: t(key, language?, vars?)
       key = args[0]
       language = args[1] || this.default
       vars = args[2]
-      if (typeof key !== "string") {
-        this.logger.error(`[Ln:Translate] En modo local, key debe ser una cadena. Recibido: key=${key}`)
-        return ""
-      }
     }
 
-    this.logger.info(`[Ln:Translate] Solicitando traducción para clave "${key}" en idioma "${language}"`)
+    this.logger.info(`GET "${key}".`)
+    this.logger.trace({
+      key,
+      language,
+      vars: vars || {},
+      mode: this.online ? "online" : "local",
+    })
 
     if (!this.locales.has(language)) {
       this.locales.set(language, new Map())
     }
     const locale = this.locales.get(language)!
+
     let text = locale.get(key)
 
-    if (text === undefined && this.online && textToTranslate) {
+    if (!text && this.online && textToTranslate) {
+      // Translate online if not cached
       try {
-        let toTranslate = textToTranslate
-        if (vars) {
-          Object.keys(vars).forEach((k, index) => {
-            const placeholder = `%${k}%`
-            const tempPlaceholder = `{{PH_${index}}}`
-            placeholders[tempPlaceholder] = placeholder
-            toTranslate = toTranslate.replace(new RegExp(`%${k}%`, 'g'), tempPlaceholder)
-          })
-        }
-        this.logger.info(`[Ln:Translate] Traduciendo "${toTranslate}" a "${language}"`)
-        const res = await translate(toTranslate, { to: language })
+        this.logger.info(`Translating online "${textToTranslate}" to "${language}".`)
+        const res = await translate(textToTranslate, { to: language })
         text = res.text
-        if (typeof text !== "string") {
-          this.logger.error(`[Ln:Translate] La API devolvió un texto no válido: ${text}`)
-          text = textToTranslate
-        }
-        // Normalizar espacios alrededor de placeholders temporales
-        Object.entries(placeholders).forEach(([temp, original]) => {
-          const regex = new RegExp(`\\s*${temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*`, 'g')
-          text = text!.replace(regex, original)
-        })
-        // Restaurar formato del texto original
-        if (textToTranslate) {
-          text = this.restoreSpaces(textToTranslate, text!, placeholders)
-        }
         locale.set(key, text)
+        this.logger.trace({
+          key,
+          language,
+          translated: text,
+        })
       } catch (e) {
-        this.logger.error(`[Ln:Translate] Error en traducción online: ${e}`)
-        text = textToTranslate
-        Object.entries(placeholders).forEach(([temp, original]) => {
-          const regex = new RegExp(temp.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g')
-          text = text!.replace(regex, original)
-        })
-        locale.set(key, text)
+        this.logger.error(`Error in online translation: ${e}`)
+        text = textToTranslate 
       }
-    } else if (text === undefined) {
-      text = textToTranslate || key
-      this.logger.info(`[Ln:Translate] Clave "${key}" no encontrada para idioma "${language}"`)
+    } else if (!text) {
+      text = key // Fallback locally if not found
+      this.logger.info(`Key "${key}" not found.`)
     }
 
-    let finalText = text || ""
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
-        if (typeof v === "string") {
-          const regex = new RegExp(`%${k}%`, 'g')
-          finalText = finalText.replace(regex, v)
-        } else {
-          this.logger.warn(`[Ln:Translate] Variable "${k}" no es una cadena, se omite: ${v}`)
-        }
+        text = text!.replace(new RegExp(`%${k}%`, "g"), v)
       })
     }
 
-    if (typeof finalText !== "string") {
-      this.logger.error(`[Ln:Translate] El texto final no es una cadena: ${finalText}`)
-      finalText = ""
-    }
-    return finalText
-  }
-
-  private restoreSpaces(original: string, translated: string, placeholders: Record<string, string>): string {
-    let result = translated
-    // Dividir el texto original en partes basadas en los placeholders
-    let parts = [original]
-    Object.values(placeholders).forEach((placeholder) => {
-      const regex = new RegExp(`(${placeholder})`, 'g')
-      parts = parts.flatMap(part => part.includes(placeholder) ? part.split(regex).filter(p => p) : part)
+    this.logger.trace({
+      key,
+      language,
+      value: text,
     })
-
-    // Dividir el texto traducido en partes basadas en los placeholders
-    let translatedParts = [result]
-    Object.values(placeholders).forEach((placeholder) => {
-      const regex = new RegExp(`(${placeholder})`, 'g')
-      translatedParts = translatedParts.flatMap(part => part.includes(placeholder) ? part.split(regex).filter(p => p) : part)
-    })
-
-    // Reconstruir el texto asegurando que los espacios y símbolos coincidan con el original
-    let finalResult = ""
-    let partIndex = 0
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
-      if (Object.values(placeholders).includes(part)) {
-        finalResult += part // Mantener el placeholder original
-        partIndex++
-      } else if (partIndex < translatedParts.length) {
-        finalResult += part // Usar el contexto original para preservar espacios y símbolos
-        partIndex++
-      }
-    }
-
-    return finalResult
+    return text!
   }
 
   public reset() {
     this.locales.clear()
-    this.logger.info("[Ln:Reset] Caché de traducciones limpiado")
+    this.logger.info("Translation cache reset.")
   }
 }
-
 export default Ln
+export {
+  Ln,
+}
